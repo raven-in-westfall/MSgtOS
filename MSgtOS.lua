@@ -110,15 +110,31 @@ local process_loot = function()
 	end
 end
 
+local process_raid_message = function(message)
+    for item_link in message:gmatch("|%x+|Hitem:.-|h.-|h|r") do
+        item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(item_link)
+	item_prio = 'None'
+        if addon_variables['prio_list'][item_name] ~= nil then
+		item_prio = addon_variables['prio_list'][item_name]
+	end
+        SendChatMessage("Prio for ".. item_link ..": ".. item_prio, "RAID")
+    end
+end
+
 local f = CreateFrame("Frame")
 f:RegisterEvent("LOOT_OPENED")
 f:RegisterEvent("RAID_ROSTER_UPDATE")
 f:RegisterEvent("GROUP_ROSTER_UPDATE")
+f:RegisterEvent("CHAT_MSG_RAID_WARNING");
 f:SetScript("OnEvent", function(self, event, ...)
 	if event == "LOOT_OPENED" and enable_logging then process_loot()
 	elseif event == "GROUP_ROSTER_UPDATE" or event == "RAID_ROSTER_UPDATE" then process_raid_change()
+	elseif event == "CHAT_MSG_RAID_WARNING" then
+		message = ...
+		process_raid_message(message)
 	end
 end)
+
 
 -- In the case of a reload we want to process_raid_change
 process_raid_change()
