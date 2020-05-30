@@ -1,3 +1,5 @@
+local MSgtOS, addon_variables = ...
+
 -- local myRoll = random(100)
 -- print("Your rolle is " .. myRoll)
 
@@ -17,6 +19,7 @@ local message_color = {
 }
 local non_guild_pug_threashold_limit = 1
 local current_loot = {}
+local group = 'Unknown'
 
 local copy_dialog = Dialog:Register("MSgtOSCopyDialog", {
 	text = "Loot Copy\nUse your copy keyboard short cut to copy loot tbale to clipboard",
@@ -48,6 +51,14 @@ local process_raid_change = function()
 		local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( user_raid_index )
 		if isML then
 			new_value = true
+			-- Determine the Raid Group
+			group = 'Ad-Hoc'
+			local day = date("%w")
+			if day == 6 then
+				group = 'Weekend'
+			elseif day == 1 or day == 2 then
+				group = 'Weekday'
+			end
 		end
 	end
 	if enable_logging ~= new_value then
@@ -59,24 +70,26 @@ local process_raid_change = function()
 		end
 	end
 
-	-- Determine the Raid Group
-	local group = 'Ad-Hoc'
-	local day = date("%w")
-	if day == 6 then
-		group = 'Weekend'
-	elseif day == 1 or day == 2 then
-		group = 'Weekday'
-	end
-
-	-- One final check will be to see if anyone in the raid group is not a guild member. If so, this will be considered a bug.
-	local pug_threashold = non_guild_pug_threashold_limit
-	local guild_counts = {}
-	for i = 1, MAX_RAID_MEMBERS do
-		local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( i )
-		local guild_name, _, _, _ = GetGuildInfo(name);
-		print(name .." is in guild ".. guild_name)
-	end
-
+	-- One final check will be to see if anyone in the raid group is not a guild member. If so, this will be considered a pug.
+	-- This can't really be done like this because this call only works if the player is within proximity.
+	-- Maybe we we can do some kind of 'client' registration.
+	-- Where the addon for player X sends the master looter their guild info.
+	-- The master looter then collects it to determine if its a PUG.
+	--if user_raid_index then
+	--	local pug_threashold = non_guild_pug_threashold_limit
+	--	for i = 1, MAX_RAID_MEMBERS do
+	--		local raid_id = "raid"..i
+	--		local player_name = GetUnitName(raid_id)
+	--		if player_name then
+	--			print("At id ".. i .." got player_name of ".. player_name)
+	--			local guild_name, _, _, _ = GetGuildInfo(raid_id)
+	--			if guild_name == nil then
+	--				guild_name = 'UNGUILDED'
+	--			end
+	--			print(player_name .." is in guild ".. guild_name)
+	--		end
+	--	end
+	--end
 end
 
 local process_loot = function()

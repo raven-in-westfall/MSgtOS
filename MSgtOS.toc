@@ -8,5 +8,6 @@
 ## OptionalDeps: LibDialog-1.0
 
 Libs\LibDialog-1.0\lib.xml
-prio.loa
+prio.lua
+prio_tooltip.lua
 MSgtOS.lua
