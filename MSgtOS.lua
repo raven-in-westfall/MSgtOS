@@ -111,14 +111,16 @@ local process_loot = function()
 end
 
 local process_raid_message = function(message)
-    for item_link in message:gmatch("|%x+|Hitem:.-|h.-|h|r") do
-        item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(item_link)
-	item_prio = 'None'
-        if addon_variables['prio_list'][item_name] ~= nil then
-		item_prio = addon_variables['prio_list'][item_name]
+	if enable_logging then
+		for item_link in message:gmatch("|%x+|Hitem:.-|h.-|h|r") do
+			item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(item_link)
+			item_prio = 'None'
+			if addon_variables['prio_list'][item_name] ~= nil then
+				item_prio = addon_variables['prio_list'][item_name]
+			end
+			SendChatMessage("Prio for ".. item_link ..": ".. item_prio, "RAID")
+		end
 	end
-        SendChatMessage("Prio for ".. item_link ..": ".. item_prio, "RAID")
-    end
 end
 
 local f = CreateFrame("Frame")
