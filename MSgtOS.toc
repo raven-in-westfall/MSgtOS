@@ -1,0 +1,12 @@
+## Interface: 11303
+## Title: Main Spec > Off Spec
+## Author: Raven
+## Notes: Helps roll and track raid loot
+## Version: 0.0.1
+## DefaultState: enabled
+
+## OptionalDeps: LibDialog-1.0
+
+Libs\LibDialog-1.0\lib.xml
+prio.loa
+MSgtOS.lua
