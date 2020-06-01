@@ -2,7 +2,7 @@ local MSgtOS, addon_variables = ...
 
 local rarity_names = { 'Poor', 'Common', 'Uncommon', 'Rare', 'Epic', 'Legendary' }
 local Dialog = LibStub("LibDialog-1.0")
-local rarity_threashold = 5
+local rarity_threashold = 4
 local threashold_exception = {
 	['Primal Hakkari Idol'] = true,
 	['Light Leather'] = true,
