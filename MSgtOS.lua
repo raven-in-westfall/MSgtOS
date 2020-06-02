@@ -107,7 +107,7 @@ local process_loot = function()
 				zone = 'BWL'
 			elseif zone == "Onyxia's Lair" then
 				zone = 'Ony'
-			elseif zone = "zul'gurub" then
+			elseif zone == "zul'gurub" then
 				zone = 'ZG'
 			end
 			if item_rarity_number >= rarity_threashold or threashold_exception[item_name] then
