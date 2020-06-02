@@ -103,6 +103,12 @@ local process_loot = function()
 			local zone = GetZoneText()
 			if zone == 'The Molten Core' then
 				zone = 'MC'
+			elseif zone == 'Blackwing Lair' then
+				zone = 'BWL'
+			elseif zone == "Onyxia's Lair" then
+				zone = 'Ony'
+			elseif zone = "zul'gurub" then
+				zone = 'ZG'
 			end
 			if item_rarity_number >= rarity_threashold or threashold_exception[item_name] then
 				loot_table = loot_table .. date("%m-%d-%y") .. "\t".. zone .."\t".. raid_group .."\t\t".. item_name .."\t".. item_rarity .."\t0\t0\t".. unit_name .."\n"
@@ -165,7 +171,7 @@ f:SetScript("OnEvent", function(self, event, ...)
 		process_raid_message(message)
 	elseif event == "CHAT_MSG_ADDON" then
 		message_type, addon_msg, level = ...
-                if message_type == 'MSgtOS_ROLL' then
+		if message_type == 'MSgtOS_ROLL' then
 			DEFAULT_CHAT_FRAME:AddMessage(addon_msg, 1, 1, 0)
 		end
 	end
