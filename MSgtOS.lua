@@ -16,8 +16,8 @@ local message_color = {
 }
 local non_guild_pug_threashold_limit = 1
 local current_loot = {}
-local group = 'Unknown'
 local player_name = GetUnitName('player')
+local raid_group = nil
 
 local copy_dialog = Dialog:Register("MSgtOSCopyDialog", {
 	text = "Loot Copy\nUse your copy keyboard short cut to copy loot tbale to clipboard",
@@ -49,14 +49,6 @@ local process_raid_change = function()
 		local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( user_raid_index )
 		if isML then
 			new_value = true
-			-- Determine the Raid Group
-			group = 'Ad-Hoc'
-			local day = date("%w")
-			if day == 6 then
-				group = 'Weekend'
-			elseif day == 1 or day == 2 then
-				group = 'Weekday'
-			end
 		end
 	end
 	if enable_logging ~= new_value then
@@ -93,13 +85,27 @@ end
 local process_loot = function()
 	local unit_name = UnitName("target")
 	local loot_table = ''
+	if raid_group == nil then
+		-- Determine the Raid Group
+		raid_group = 'Ad-Hoc'
+		local day = date("%w")
+		if day == "6" then
+			raid_group = 'Weekend'
+		elseif day == "1" or day == "2" then
+			raid_group = 'Weekday'
+		end
+	end
 	for i = 1, GetNumLootItems() do
 		item_link = GetLootSlotLink(i);
 		if item_link ~= nil then
 			local item_name, _, item_rarity_number, _, _, _, _, _, _, _, _ = GetItemInfo(item_link)
 			local item_rarity = rarity_names[item_rarity_number + 1]
+			local zone = GetZoneText()
+			if zone == 'The Molten Core' then
+				zone = 'MC'
+			end
 			if item_rarity_number >= rarity_threashold or threashold_exception[item_name] then
-				loot_table = loot_table .. date("%m-%d-%y") .. "\t".. GetZoneText() .."\t".. group .."\t\t".. item_name .."\t".. item_rarity .."\t\t\t".. unit_name .."\n"
+				loot_table = loot_table .. date("%m-%d-%y") .. "\t".. zone .."\t".. raid_group .."\t\t".. item_name .."\t".. item_rarity .."\t0\t0\t".. unit_name .."\n"
 			end
 		end
 	end
