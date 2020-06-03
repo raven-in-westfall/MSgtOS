@@ -12,18 +12,36 @@ local current_roll_text = nil
 local legacy_rolls = {}
 local roll_opened = false
 local master_looter = true
+local already_rolled = false
 
 local send_chat_message = function(text)
 	DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] ".. text, 0.45, 0.0, 1.0)
 end
 
-local get_sorted_keys = function(table_to_sort)
+local insert_into_current_tracker = function(roll_type, roll_user, roll_score)
+	if roll_type == 'MS' or roll_type == 'OS' then
+		if current_roll_tracker[roll_type][roll_score] == nil then
+			current_roll_tracker[roll_type][roll_score] = {}
+		end
+		table.insert(current_roll_tracker[roll_type][roll_score], roll_user)
+	elseif roll_type == 'passes' then
+		current_roll_tracker[roll_type][roll_user] = true
+	end
+	current_roll_tracker['rollers'][roll_user] = true
+	-- If someone passed something invalid, IDC, maybe oneday raise an exception?
+end
+
+local get_sorted_keys = function(table_to_sort, ascending)
 	local keys = {}
 	for key in pairs(table_to_sort) do
 		table.insert(keys, key)
 	end
 
-	table.sort(keys, function(a, b) return a > b end)
+	if decending then
+		table.sort(keys, function(a, b) return a > b end)
+	else
+		table.sort(keys, function(a, b) return a < b end)
+	end
 	return keys
 end
 
@@ -87,7 +105,7 @@ local generate_roll_text = function()
 
 	-- Extract out the main spec rolls
 	new_text = new_text .."|cffffff00Main Spec Rolls|r\n"
-	local sorted_keys = get_sorted_keys(current_roll_tracker['MS'])
+	local sorted_keys = get_sorted_keys(current_roll_tracker['MS'], true)
 	local has_roll = false
 	for _, key in ipairs(sorted_keys) do
 		for _, user in pairs(current_roll_tracker['MS'][key]) do
@@ -101,7 +119,7 @@ local generate_roll_text = function()
 
 	-- Extract out the off spec rolls
 	new_text = new_text .."\n|cffffff00Off Spec Rolls|r\n"
-	local sorted_keys = get_sorted_keys(current_roll_tracker['OS'])
+	local sorted_keys = get_sorted_keys(current_roll_tracker['OS'], true)
 	has_roll = false
 	for _, key in ipairs(sorted_keys) do
 		for _, user in pairs(current_roll_tracker['OS'][key]) do
@@ -116,7 +134,7 @@ local generate_roll_text = function()
 	-- Extract out the pass rolles
 	new_text = new_text .."\n|cffffff00Passed|r\n"
 	has_roll = false
-	local sorted_keys = get_sorted_keys(current_roll_tracker['passes'])
+	local sorted_keys = get_sorted_keys(current_roll_tracker['passes'], false)
 	for _, key in ipairs(sorted_keys) do
 		new_text = new_text .. key .."\n"
 		raid_classes[key] = nil
@@ -142,7 +160,7 @@ local generate_roll_text = function()
 	current_roll_text = new_text
 end
 
-local process_roll_request = function(addon_msg)
+local process_incoming_roll_request = function(addon_msg)
 	-- If there is not a current roll we don't need to do anything
 	if current_roll_tracker == nil then
 		return
@@ -153,29 +171,31 @@ local process_roll_request = function(addon_msg)
 		return
 	end
 
-       	local my_roll = random(100)
+	local roll_type = string.sub(addon_msg, 1, 6)
+	local roll_user = string.sub(addon_msg, 7)
+	local roll_value = random(100)
 
-	roll_type = string.sub(addon_msg, 1, 6)
-	roll_user = string.sub(addon_msg, 7)
+	-- Don't allow a player to roll again
+	if current_roll_tracker['rollers'][roll_user] ~= nil then
+		return
+	end
 
+        local client_message = ''
 	if roll_type == 'msroll' then
-		if current_roll_tracker['MS'][my_roll] == nil then
-			current_roll_tracker['MS'][my_roll] = {}
-		end
-		table.insert(current_roll_tracker['MS'][my_roll], roll_user)
+		roll_type = 'MS'
 	elseif roll_type == 'osroll' then
-		if current_roll_tracker['OS'][my_roll] == nil then
-			current_roll_tracker['OS'][my_roll] = {}
-		end
-		table.insert(current_roll_tracker['OS'][my_roll], roll_user)
+		roll_type = 'OS'
 	elseif roll_type == 'passes' then
-		current_roll_tracker['passes'][roll_user] = true
+		role_type = 'passes'
 	else
 		send_chat_message("Invalid roll request: ".. addon_msg)
 	end
 
+	insert_into_current_tracker(roll_type, roll_user, roll_value)
+	client_message = roll_user .. " ".. roll_type .." ".. roll_value
+
 	generate_roll_text()
-       	C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", "rollupdate ".. current_roll_text, "RAID");
+       	C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", "rollupdate ".. client_message, "RAID");
 
 	-- Maybe we want to broadcast the roll? IDK, maybe a setting
        	-- roll_message = player_name .." rolls ".. my_roll .." (1-100) ".. spec_type
@@ -244,8 +264,19 @@ scroll_frame:SetScrollChild(loot_info)
 
 
 local update_roll_window = function(new_roll_data)
-	current_roll_text = new_roll_data
-	loot_info:SetText(new_roll_data)
+        -- If we are not the master looter we need to extract the information into our local cache of the roll
+	-- Master looter has already done this when they generated the roll for the user
+	-- This also prevents someone from sending the ML a crafted addon message
+	if new_roll_data and not master_looter then
+		-- split the new_roll_data on ' ' elements will be user, roll_type, roll
+		local roll_data = {}
+		for substring in new_roll_data:gmatch("%S+") do
+			table.insert(roll_data, substring)
+		end
+		insert_into_current_tracker(roll_data[2], roll_data[2], roll_data[3])
+		generate_roll_text()
+	end
+	loot_info:SetText(current_roll_text)
 	loot_roll_frame:Show()
 end
 
@@ -257,6 +288,7 @@ local start_roll = function(item_link)
 	end
 	current_roll_tracker = {
 		['item_link'] = item_link,
+		['rollers'] = {},
 		['passes'] = {},
 		['MS'] = {},
 		['OS'] = {},
@@ -264,7 +296,7 @@ local start_roll = function(item_link)
 	roll_opened = true
 	-- Force the window to open for everyone
 	generate_roll_text()
-	update_roll_window(current_roll_text)
+	update_roll_window()
 end
 
 
@@ -278,6 +310,7 @@ local end_roll = function()
 	end
 	current_roll_tracer = nil
 	roll_opened = false
+	already_rolled = false
 end
 
 SLASH_MSGTOSSTARTROLL1 = '/raidroll'
@@ -319,31 +352,32 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 	end
 end
 
+local make_roll = function(roll_type)
+	if not roll_opened then
+		print_no_roll_message()
+		return
+	end
+	if alredy_rolled then
+		send_chat_message("You have already rolled on this item")
+		return
+	end
+	already_rolled = true
+	C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", roll_type .." ".. player_name, "RAID");
+end
+
 SLASH_MSGTOSOSROLL1 = '/osroll'
 SlashCmdList.MSGTOSOSROLL = function(msg, ...)
-	if roll_opened then
-		C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", "osroll ".. player_name, "RAID");
-	else
-		print_no_roll_message()
-	end
+	make_roll('osroll')
 end
 
 SLASH_MSGTOSMSROLL1 = '/msroll'
 SlashCmdList.MSGTOSMSROLL = function(msg, ...)
-	if roll_opened then
-		C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", "msroll ".. player_name, "RAID");
-	else
-		print_no_roll_message()
-	end
+	make_roll('msroll')
 end
 
 SLASH_MSGTOSPASSROLL1 = '/pass'
 SlashCmdList.MSGTOSPASSROLL = function(msg, ...)
-	if roll_opened then
-		C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", "passes ".. player_name, "RAID");
-	else
-		print_no_roll_message()
-	end
+	make_roll('passes')
 end
 
 print_no_roll_message = function()
@@ -363,7 +397,7 @@ f:SetScript("OnEvent", function(self, event, ...)
 			elseif string.sub(addon_msg, 1, 11) == 'rollupdate ' then
 				update_roll_window(string.sub(addon_msg, 12))
 			else
-				process_roll_request(addon_msg)
+				process_incoming_roll_request(addon_msg)
 			end
 		end
 	end
