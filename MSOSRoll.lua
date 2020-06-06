@@ -8,14 +8,47 @@ local rarity_names = { 'Poor', 'Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'
 local Dialog = LibStub("LibDialog-1.0")
 local player_name = GetUnitName('player')
 local current_roll_tracker = nil
-local current_roll_text = nil
+local current_roll_index = nil
 local legacy_rolls = {}
 local roll_opened = false
-local master_looter = true
+local master_looter = false
 local already_rolled = false
+local class_name_to_id_map = {
+	['None'] = '0',
+	['Warrior'] = '1',
+	['Paladin'] = '2',
+	['Hunter'] = '3',
+	['Rogue'] = '4',
+	['Priest'] = '5',
+	['DeathKnight'] = '6',
+	['Shaman'] = '7',
+	['Mage'] = '8',
+	['Warlock'] = '9',
+	['Monk'] = '10',
+	['Druid'] = '11',
+	['Demon Hunter'] = '12',
+}
+
+
+local MSGTOSRoll = {
+	current_roll_text = nil,
+}
 
 local send_chat_message = function(text)
 	DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] ".. text, 0.45, 0.0, 1.0)
+end
+
+local check_if_i_am_master_looter = function()
+	master_looter = false
+        local user_raid_index = UnitInRaid("player")
+        -- if not ina raid index will be nil
+        if user_raid_index then
+                local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( user_raid_index )
+                if isML then
+			send_chat_message("Congratz, you are the ML")
+                        master_looter = true
+                end
+        end
 end
 
 local insert_into_current_tracker = function(roll_type, roll_user, roll_score)
@@ -37,7 +70,7 @@ local get_sorted_keys = function(table_to_sort, ascending)
 		table.insert(keys, key)
 	end
 
-	if decending then
+	if ascending == nil or ascending then
 		table.sort(keys, function(a, b) return a > b end)
 	else
 		table.sort(keys, function(a, b) return a < b end)
@@ -46,70 +79,35 @@ local get_sorted_keys = function(table_to_sort, ascending)
 end
 
 local generate_roll_text = function()
-	--print('RAID_CLASS_COLORS')
-	--for key, value in pairs(RAID_CLASS_COLORS) do
-	--	print(key)
-	--end
-
+	local new_text = '|cffffff00Loot Rolls|r\n'
+	if current_roll_tracker == nil then
+		MSGTOSRoll.current_roll_text = new_text .."|cff666666No Current Roll|r"
+		return
+	end
+	local class_colors = {}
 	-- First load everyone in the raid
-	local new_text = '|cffffff00Loot Rolls\nFor |r'.. current_roll_tracker['item_link'] .."\n\n"
+	new_text = new_text ..'|cffffff00Item: |r'.. current_roll_tracker['item_link'] .."\n\n"
 	local raid_classes = {}
---	for i = 1, MAX_RAID_MEMBERS do
---		user_name, _, _, _, user_class, _, _, _, _, _, _ = GetRaidRosterInfo(i);
---		if user_name ~= nil then
---			raid_classes[ user_name ] = user_class
---		end
---	end
-
-	raid_classes['u1'] = true
-	raid_classes['u2'] = true
-	raid_classes['u3'] = true
-	raid_classes['u4'] = true
-	raid_classes['u5'] = true
-	raid_classes['u6'] = true
-	raid_classes['u7'] = true
-	raid_classes['u8'] = true
-	raid_classes['u9'] = true
-	raid_classes['u10'] = true
-	raid_classes['u11'] = true
-	raid_classes['u12'] = true
-	raid_classes['u13'] = true
-	raid_classes['u14'] = true
-	raid_classes['u15'] = true
-	raid_classes['u16'] = true
-	raid_classes['u17'] = true
-	raid_classes['u18'] = true
-	raid_classes['u19'] = true
-	raid_classes['u20'] = true
-	raid_classes['u21'] = true
-	raid_classes['u22'] = true
-	raid_classes['u23'] = true
-	raid_classes['u24'] = true
-	raid_classes['u25'] = true
-	raid_classes['u26'] = true
-	raid_classes['u27'] = true
-	raid_classes['u28'] = true
-	raid_classes['u29'] = true
-	raid_classes['u30'] = true
-	raid_classes['u31'] = true
-	raid_classes['u32'] = true
-	raid_classes['u33'] = true
-	raid_classes['u34'] = true
-	raid_classes['u35'] = true
-	raid_classes['u36'] = true
-	raid_classes['u37'] = true
-	raid_classes['u38'] = true
-	raid_classes['Chegg'] = true
-	raid_classes['Anabella'] = true
-
+	local raid_colors = {}
+	for i = 1, MAX_RAID_MEMBERS do
+		user_name, _, _, _, user_class, _, _, _, _, _, _ = GetRaidRosterInfo(i);
+		if user_name ~= nil then
+			if class_colors[user_class] == nil then
+				r, g, b, hex = GetClassColor(string.upper(user_class))
+				class_colors[user_class] = hex
+			end
+			raid_classes[ user_name ] = true
+			raid_colors[ user_name] = class_colors[user_class]
+		end
+	end
 
 	-- Extract out the main spec rolls
 	new_text = new_text .."|cffffff00Main Spec Rolls|r\n"
-	local sorted_keys = get_sorted_keys(current_roll_tracker['MS'], true)
+	local sorted_keys = get_sorted_keys(current_roll_tracker['MS'])
 	local has_roll = false
 	for _, key in ipairs(sorted_keys) do
 		for _, user in pairs(current_roll_tracker['MS'][key]) do
-			new_text = new_text .. key .." ".. user .."\n"
+			new_text = new_text .. key .." |c".. raid_colors[user] .. user .."|r\n"
 			raid_classes[user] = nil
 			has_roll = true
 		end
@@ -119,11 +117,11 @@ local generate_roll_text = function()
 
 	-- Extract out the off spec rolls
 	new_text = new_text .."\n|cffffff00Off Spec Rolls|r\n"
-	local sorted_keys = get_sorted_keys(current_roll_tracker['OS'], true)
+	local sorted_keys = get_sorted_keys(current_roll_tracker['OS'])
 	has_roll = false
 	for _, key in ipairs(sorted_keys) do
 		for _, user in pairs(current_roll_tracker['OS'][key]) do
-			new_text = new_text .. key .." ".. user .."\n"
+			new_text = new_text .. key .." |c".. raid_colors[user] .. user .."|r\n"
 			raid_classes[user] = nil
 			has_roll = true
 		end
@@ -136,7 +134,7 @@ local generate_roll_text = function()
 	has_roll = false
 	local sorted_keys = get_sorted_keys(current_roll_tracker['passes'], false)
 	for _, key in ipairs(sorted_keys) do
-		new_text = new_text .. key .."\n"
+		new_text = new_text .."|c".. raid_colors[key] .. key .."|r\n"
 		raid_classes[key] = nil
 		has_roll = true
 	end
@@ -157,7 +155,7 @@ local generate_roll_text = function()
 	if not has_roll then new_text = new_text .."|cff666666None|r\n" end
 
 	-- Finally set the current roll data to this new text
-	current_roll_text = new_text
+	MSGTOSRoll.current_roll_text = new_text
 end
 
 local process_incoming_roll_request = function(addon_msg)
@@ -172,7 +170,7 @@ local process_incoming_roll_request = function(addon_msg)
 	end
 
 	local roll_type = string.sub(addon_msg, 1, 6)
-	local roll_user = string.sub(addon_msg, 7)
+	local roll_user = string.sub(addon_msg, 8)
 	local roll_value = random(100)
 
 	-- Don't allow a player to roll again
@@ -203,64 +201,92 @@ local process_incoming_roll_request = function(addon_msg)
 	--  DEFAULT_CHAT_FRAME:AddMessage(addon_msg, 1, 1, 0)
 end
 
-local loot_roll_frame = CreateFrame("Frame", "SwatterErrorFrame", UIParent)
-loot_roll_frame:Hide()
-loot_roll_frame:SetPoint("CENTER", "UIParent", "CENTER")
-loot_roll_frame:SetFrameStrata("TOOLTIP")
-loot_roll_frame:SetHeight(580)
-loot_roll_frame:SetWidth(300)
-loot_roll_frame:SetBackdrop({
+function MSGTOSRoll.show_previous_roll()
+	if current_roll_index == nil then
+		current_roll_index = table.getn(legacy_rolls)
+	else
+		current_roll_index = current_roll_index - 1
+	end
+	if current_roll_index == 1 then
+		MSGTOSRoll.prev_button:Disable()
+	else
+		MSGTOSRoll.prev_button:Enable()
+	end
+	MSGTOSRoll.next_button:Enable()
+	MSGTOSRoll.loot_info:SetText(legacy_rolls[current_roll_index])
+end
+
+function MSGTOSRoll.show_next_roll()
+	current_roll_index = current_roll_index + 1
+	if current_roll_index > table.getn(legacy_rolls) then
+		MSGTOSRoll.next_button:Disable()
+		MSGTOSRoll.loot_info:SetText(MSGTOSRoll.current_roll_text)
+	else
+		MSGTOSRoll.loot_info:SetText(legacy_rolls[current_roll_index])
+		MSGTOSRoll.next_button:Enable()
+	end
+	MSGTOSRoll.prev_button:Enable()
+end
+
+MSGTOSRoll.loot_roll_frame = CreateFrame("Frame", "MSOSRollFrame", UIParent)
+MSGTOSRoll.loot_roll_frame:Hide()
+MSGTOSRoll.loot_roll_frame:SetPoint("CENTER", "UIParent", "CENTER")
+MSGTOSRoll.loot_roll_frame:SetFrameStrata("TOOLTIP")
+MSGTOSRoll.loot_roll_frame:SetHeight(580)
+MSGTOSRoll.loot_roll_frame:SetWidth(300)
+MSGTOSRoll.loot_roll_frame:SetBackdrop({
 	bgFile = "Interface/Tooltips/ChatBubble-Background",
 	edgeFile = "Interface/Tooltips/ChatBubble-BackDrop",
 	tile = true, tileSize = 32, edgeSize = 32,
 	insets = { left = 32, right = 32, top = 32, bottom = 32 }
 })
-loot_roll_frame:SetBackdropColor(0,0,0, 1)
---Swatter.Error:SetScript("OnShow", Swatter.ErrorShow)
-loot_roll_frame:SetMovable(true)
-loot_roll_frame:SetClampedToScreen(true)
-loot_roll_frame:SetToplevel(true)
-loot_roll_frame:SetScript("OnMouseDown", function() loot_roll_frame:StartMoving() end)
-loot_roll_frame:SetScript("OnMouseUp", function() loot_roll_frame:StopMovingOrSizing() end)
+MSGTOSRoll.loot_roll_frame:SetBackdropColor(0,0,0, 1)
+MSGTOSRoll.loot_roll_frame:SetMovable(true)
+MSGTOSRoll.loot_roll_frame:SetClampedToScreen(true)
+MSGTOSRoll.loot_roll_frame:SetToplevel(true)
+MSGTOSRoll.loot_roll_frame:SetScript("OnMouseDown", function() MSGTOSRoll.loot_roll_frame:StartMoving() end)
+MSGTOSRoll.loot_roll_frame:SetScript("OnMouseUp", function() MSGTOSRoll.loot_roll_frame:StopMovingOrSizing() end)
 
--- local dragger = CreateFrame("Button", nil, loot_roll_frame)
--- dragger:SetPoint("TOPLEFT", loot_roll_frame, "TOPLEFT", 10,-5)
--- dragger:SetPoint("TOPRIGHT", loot_roll_frame, "TOPRIGHT", -10,-5)
+-- local dragger = CreateFrame("Button", nil, MSGTOSRoll.loot_roll_frame)
+-- dragger:SetPoint("TOPLEFT", MSGTOSRoll.loot_roll_frame, "TOPLEFT", 10,-5)
+-- dragger:SetPoint("TOPRIGHT", MSGTOSRoll.loot_roll_frame, "TOPRIGHT", -10,-5)
 -- dragger:SetHeight(8)
 -- dragger:SetHighlightTexture("Interface\\FriendsFrame\\UI-FriendsFrame-HighlightBar")
 
-local close_button = CreateFrame("Button", "", loot_roll_frame, "OptionsButtonTemplate")
-close_button:SetText("Close")
-close_button:SetPoint("BOTTOMRIGHT", loot_roll_frame, "BOTTOMRIGHT", -10, 10)
-close_button:SetScript("OnClick", function() loot_roll_frame:Hide() end)
-close_button:SetFrameLevel(5)
+MSGTOSRoll.close_button = CreateFrame("Button", "", MSGTOSRoll.loot_roll_frame, "OptionsButtonTemplate")
+MSGTOSRoll.close_button:SetText("Close")
+MSGTOSRoll.close_button:SetPoint("BOTTOMRIGHT", MSGTOSRoll.loot_roll_frame, "BOTTOMRIGHT", -10, 10)
+MSGTOSRoll.close_button:SetScript("OnClick", function() MSGTOSRoll.loot_roll_frame:Hide() end)
+MSGTOSRoll.close_button:SetFrameLevel(5)
 
-local next_button = CreateFrame("Button", "", loot_roll_frame, "OptionsButtonTemplate")
-next_button:SetText("Next >")
-next_button:SetPoint("BOTTOMRIGHT", close_button, "BOTTOMLEFT", -5, 0)
-next_button:SetScript("OnClick", Swatter.ErrorNext)
-next_button:SetFrameLevel(5)
+MSGTOSRoll.next_button = CreateFrame("Button", "", MSGTOSRoll.loot_roll_frame, "OptionsButtonTemplate")
+MSGTOSRoll.next_button:SetText("Next >")
+MSGTOSRoll.next_button:SetPoint("BOTTOMRIGHT", MSGTOSRoll.close_button, "BOTTOMLEFT", -5, 0)
+MSGTOSRoll.next_button:SetScript("OnClick", MSGTOSRoll.show_next_roll)
+MSGTOSRoll.next_button:SetFrameLevel(5)
+MSGTOSRoll.next_button:Disable()
 
-local prev_button = CreateFrame("Button", "", loot_roll_frame, "OptionsButtonTemplate")
-prev_button:SetText("< Prev")
-prev_button:SetPoint("BOTTOMRIGHT", next_button, "BOTTOMLEFT", -5, 0)
-prev_button:SetScript("OnClick", Swatter.ErrorPrev)
-prev_button:SetFrameLevel(5)
+MSGTOSRoll.prev_button = CreateFrame("Button", "", MSGTOSRoll.loot_roll_frame, "OptionsButtonTemplate")
+MSGTOSRoll.prev_button:SetText("< Prev")
+MSGTOSRoll.prev_button:SetPoint("BOTTOMRIGHT", MSGTOSRoll.next_button, "BOTTOMLEFT", -5, 0)
+MSGTOSRoll.prev_button:SetScript("OnClick", MSGTOSRoll.show_previous_roll)
+MSGTOSRoll.prev_button:SetFrameLevel(5)
+MSGTOSRoll.prev_button:Disable()
 
-local scroll_frame = CreateFrame("ScrollFrame", "", loot_roll_frame, "UIPanelScrollFrameTemplate")
-scroll_frame:SetPoint("TOPLEFT", loot_roll_frame, "TOPLEFT", 20, -20)
-scroll_frame:SetPoint("RIGHT", loot_roll_frame, "RIGHT", -30, 0)
-scroll_frame:SetPoint("BOTTOM", close_button, "TOP", 0, 10)
+MSGTOSRoll.scroll_frame = CreateFrame("ScrollFrame", "", MSGTOSRoll.loot_roll_frame, "UIPanelScrollFrameTemplate")
+MSGTOSRoll.scroll_frame:SetPoint("TOPLEFT", MSGTOSRoll.loot_roll_frame, "TOPLEFT", 20, -20)
+MSGTOSRoll.scroll_frame:SetPoint("RIGHT", MSGTOSRoll.loot_roll_frame, "RIGHT", -30, 0)
+MSGTOSRoll.scroll_frame:SetPoint("BOTTOM", MSGTOSRoll.close_button, "TOP", 0, 10)
 
-local loot_info = CreateFrame("EditBox", "", scroll_frame)
-loot_info:SetWidth(450)
-loot_info:SetHeight(485)
-loot_info:SetMultiLine(true)
-loot_info:SetAutoFocus(false)
-loot_info:SetFontObject(GameFontHighlight)
-loot_info:SetScript("OnEditFocusGained", function() loot_info:ClearFocus() end )
+MSGTOSRoll.loot_info = CreateFrame("EditBox", "", MSGTOSRoll.scroll_frame)
+MSGTOSRoll.loot_info:SetWidth(450)
+MSGTOSRoll.loot_info:SetHeight(485)
+MSGTOSRoll.loot_info:SetMultiLine(true)
+MSGTOSRoll.loot_info:SetAutoFocus(false)
+MSGTOSRoll.loot_info:SetFontObject(GameFontHighlight)
+MSGTOSRoll.loot_info:SetScript("OnEditFocusGained", function() MSGTOSRoll.loot_info:ClearFocus() end )
 
-scroll_frame:SetScrollChild(loot_info)
+MSGTOSRoll.scroll_frame:SetScrollChild(MSGTOSRoll.loot_info)
 
 
 local update_roll_window = function(new_roll_data)
@@ -273,18 +299,36 @@ local update_roll_window = function(new_roll_data)
 		for substring in new_roll_data:gmatch("%S+") do
 			table.insert(roll_data, substring)
 		end
-		insert_into_current_tracker(roll_data[2], roll_data[2], roll_data[3])
+		insert_into_current_tracker(roll_data[2], roll_data[1], roll_data[3])
 		generate_roll_text()
 	end
-	loot_info:SetText(current_roll_text)
-	loot_roll_frame:Show()
+	if current_roll_index == nil then
+		MSGTOSRoll.loot_info:SetText(MSGTOSRoll.current_roll_text)
+		MSGTOSRoll.loot_roll_frame:Show()
+	end
 end
 
 
+-- This ends a roll for an item, everyone needs to run this so their client knows if a roll ends
+local end_roll = function()
+	if current_roll_tracker ~= nil then
+		table.insert(legacy_rolls, MSGTOSRoll.current_roll_text)
+		if master_looter then
+			SendChatMessage("Roll for ".. current_roll_tracker['item_link'] .." has ended", "RAID")
+		end
+	end
+	current_roll_tracker = nil
+	roll_opened = false
+	already_rolled = false
+	if table.getn(legacy_rolls) > 0 then
+		MSGTOSRoll.prev_button:Enable()
+	end
+end
+
 -- This openes up a roll for an item, everyone needs to run this so their client knows if a roll is opened
 local start_roll = function(item_link)
-	if current_roll_tracer ~= nil then
-		table.insert(legacy_rolls, current_roll_text)
+	if current_roll_tracker ~= nil then
+		end_roll()
 	end
 	current_roll_tracker = {
 		['item_link'] = item_link,
@@ -300,36 +344,33 @@ local start_roll = function(item_link)
 end
 
 
--- This ends a roll for an item, everyone needs to run this so their client knows if a roll ends
-local end_roll = function()
-	if current_roll_tracer ~= nil then
-		table.insert(legacy_rolls, current_roll_text)
-		if master_looter then
-			SendChatMessage("Roll for ".. current_roll_tracer['item_link'] .." has ended", "RAID")
-		end
-	end
-	current_roll_tracer = nil
-	roll_opened = false
-	already_rolled = false
-end
-
 SLASH_MSGTOSSTARTROLL1 = '/raidroll'
 SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
-	-- the raidroll command can only be be used by ML
-	if not master_looter then
+	if msg == nil then
+		send_chat_message("Please pass an item, end or show")
 		return
 	end
 
-	if msg == nil then
-		send_chat_message("You need to specify an item to roll on")
+	if msg == 'show' then
+		if MSGTOSRoll.current_roll_text == nil then
+			generate_roll_text()
+		end
+		update_roll_window()
 		return
 	end
+
+	-- Starting and ending raidrolls can only be done by ML
+	if not master_looter then
+		send_chat_message("You are not the master looter")
+		return
+	end
+
+
 	if msg == 'end' then
 		if current_roll_tracker == nil then
 			send_chat_message("There is no roll currently opened")
 			return
 		end
-		SendChatMessage("Roll has ended for ".. current_roll_tracker['item_link'], "RAID")
 		C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", "end", "RAID")
 	else
 		if current__roll_tracker ~= nil then
@@ -357,7 +398,7 @@ local make_roll = function(roll_type)
 		print_no_roll_message()
 		return
 	end
-	if alredy_rolled then
+	if already_rolled then
 		send_chat_message("You have already rolled on this item")
 		return
 	end
@@ -386,6 +427,8 @@ end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("CHAT_MSG_ADDON")
+f:RegisterEvent("GROUP_ROSTER_UPDATE")
+f:RegisterEvent("RAID_ROSTER_UPDATE")
 f:SetScript("OnEvent", function(self, event, ...)
 	if event == "CHAT_MSG_ADDON" then
 		message_type, addon_msg, level = ...
@@ -400,8 +443,10 @@ f:SetScript("OnEvent", function(self, event, ...)
 				process_incoming_roll_request(addon_msg)
 			end
 		end
+	elseif event == "GROUP_ROSTER_UPDATE" or event == "RAID_ROSTER_UPDATE" then check_if_i_am_master_looter()
 	end
 end)
 
 
 C_ChatInfo.RegisterAddonMessagePrefix("MSgtOS_ROLL")
+check_if_i_am_master_looter()
