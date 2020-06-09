@@ -13,22 +13,6 @@ local legacy_rolls = {}
 local roll_opened = false
 local master_looter = false
 local already_rolled = false
-local class_name_to_id_map = {
-	['None'] = '0',
-	['Warrior'] = '1',
-	['Paladin'] = '2',
-	['Hunter'] = '3',
-	['Rogue'] = '4',
-	['Priest'] = '5',
-	['DeathKnight'] = '6',
-	['Shaman'] = '7',
-	['Mage'] = '8',
-	['Warlock'] = '9',
-	['Monk'] = '10',
-	['Druid'] = '11',
-	['Demon Hunter'] = '12',
-}
-
 
 local MSGTOSRoll = {
 	current_roll_text = nil,
