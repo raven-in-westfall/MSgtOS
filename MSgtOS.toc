@@ -12,3 +12,4 @@ prio.lua
 prio_tooltip.lua
 MSgtOS.lua
 MSOSRoll.lua
+CloakCheck.lua
