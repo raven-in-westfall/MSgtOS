@@ -1,5 +1,6 @@
 -- TODO:
 --	Can we auto-close copy window on ctl-c pressed?
+--	Don't log elementum ore
 
 local MSgtOS, addon_variables = ...
 
@@ -8,10 +9,11 @@ local Dialog = LibStub("LibDialog-1.0")
 local rarity_threashold = 4
 local threashold_exception = {
 	['Primal Hakkari Idol'] = true,
-	['Light Leather'] = true,
-	["Chunk of Boar Meat"] = true,
-	['Dwarven Mild'] = true,
 } 
+local ignore_items = {
+	['Elementium Ore'] = true,
+	["Chunk of Boar Meat"] = true,
+}
 local enable_logging = true
 local message_color = {
 	['r'] = 0.45,
@@ -22,6 +24,14 @@ local non_guild_pug_threashold_limit = 1
 local current_loot = {}
 local raid_group = nil
 local player_name = GetUnitName('player')
+
+local addon_checks = {}
+addon_checks[player_name] = true
+
+local check_addons = function()
+        if is_master_looter then
+        end
+end
 
 local copy_dialog = Dialog:Register("MSgtOSCopyDialog", {
 	text = "Loot Copy\nUse your copy keyboard short cut to copy loot tbale to clipboard",
@@ -84,6 +94,8 @@ local process_raid_change = function()
 	--		end
 	--	end
 	--end
+
+	check_addons()
 end
 
 local process_loot = function()
@@ -103,19 +115,21 @@ local process_loot = function()
 		item_link = GetLootSlotLink(i);
 		if item_link ~= nil then
 			local item_name, _, item_rarity_number, _, _, _, _, _, _, _, _ = GetItemInfo(item_link)
-			local item_rarity = rarity_names[item_rarity_number + 1]
-                        local zone = GetZoneText()
-                        if zone == 'The Molten Core' then
-                                zone = 'MC'
-			elseif zone == 'Blackwing Lair' then
-				zone = 'BWL'
-			elseif zone == "Onyxia's Lair" then
-				zone = 'Ony'
-			elseif zone == "Zul'gurub" then
-				zone = 'ZG'
-                        end
-			if item_rarity_number >= rarity_threashold or threashold_exception[item_name] then
-				loot_table = loot_table .. date("%m-%d-%y") .. "\t".. GetZoneText() .."\t".. raid_group .."\t\t".. item_name .."\t".. item_rarity .."\t0\t0\t".. unit_name .."\n"
+			if not ignore_items[item_name] then
+				local item_rarity = rarity_names[item_rarity_number + 1]
+                        	local zone = GetZoneText()
+                        	if zone == 'The Molten Core' then
+                                	zone = 'MC'
+				elseif zone == 'Blackwing Lair' then
+					zone = 'BWL'
+				elseif zone == "Onyxia's Lair" then
+					zone = 'Ony'
+				elseif zone == "Zul'gurub" then
+					zone = 'ZG'
+                        	end
+				if item_rarity_number >= rarity_threashold or threashold_exception[item_name] then
+					loot_table = loot_table .. date("%m-%d-%y") .. "\t".. GetZoneText() .."\t".. raid_group .."\t\t".. item_name .."\t".. item_rarity .."\t0\t0\t".. unit_name .."\n"
+				end
 			end
 		end
 	end
