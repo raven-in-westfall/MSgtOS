@@ -11,11 +11,11 @@ local current_roll_tracker = nil
 local current_roll_index = nil
 local legacy_rolls = {}
 local roll_opened = false
-local master_looter = false
 local already_rolled = false
 
 local MSGTOSRoll = {
 	current_roll_text = nil,
+	master_looter = false,
 }
 
 local send_chat_message = function(text)
@@ -23,14 +23,15 @@ local send_chat_message = function(text)
 end
 
 local check_if_i_am_master_looter = function()
-	master_looter = false
+	print("Checking for master looter")
+	MSGTOSRoll.master_looter = false
         local user_raid_index = UnitInRaid("player")
         -- if not ina raid index will be nil
         if user_raid_index then
                 local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( user_raid_index )
                 if isML then
-			send_chat_message("Congratz, you are the ML")
-                        master_looter = true
+						send_chat_message("Congratz, you are the ML")
+                        MSGTOSRoll.master_looter = true
                 end
         end
 end
@@ -138,7 +139,13 @@ local generate_roll_text = function()
 			has_roll = true
 		end
 	end
-	if not has_roll then new_text = new_text .."|cff666666None|r\n" end
+	if not has_roll then
+		new_text = new_text .."|cff666666None|r\n"
+		-- If we are the master looter and there are no rollers left we can end the roll
+		if MSGTOSRoll.master_looter then
+			MSGTOSRoll.end_roll()
+		end
+	end
 
 	-- Finally set the current roll data to this new text
 	MSGTOSRoll.current_roll_text = new_text
@@ -151,7 +158,7 @@ local process_incoming_roll_request = function(addon_msg)
 	end
 
 	-- only the master looters machine is alowed to generate a roll
-	if not master_looter then
+	if not MSGTOSRoll.master_looter then
 		return
 	end
 
@@ -316,8 +323,14 @@ MSGTOSRoll.client_roller.os_button:SetFrameLevel(5)
 MSGTOSRoll.client_roller.pass_button = CreateFrame("Button", "", MSGTOSRoll.client_roller, "OptionsButtonTemplate")
 MSGTOSRoll.client_roller.pass_button:SetText("Pass")
 MSGTOSRoll.client_roller.pass_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller.os_button, "BOTTOMRIGHT", 0, -20)
-MSGTOSRoll.client_roller.pass_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('pass') end)
+MSGTOSRoll.client_roller.pass_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('passes') end)
 MSGTOSRoll.client_roller.pass_button:SetFrameLevel(5)
+
+MSGTOSRoll.client_roller.item_icon = MSGTOSRoll.client_roller:CreateTexture(nil, "BACKGROUND")
+MSGTOSRoll.client_roller.item_icon:SetWidth(60)
+MSGTOSRoll.client_roller.item_icon:SetHeight(60)
+MSGTOSRoll.client_roller.item_icon:SetPoint("TOPLEFT", 40, -40)
+MSGTOSRoll.client_roller.item_icon:SetTexture("Interface\\Icons\\INV_Misc_EngGizmos_17")
 
 
 
@@ -327,7 +340,7 @@ local update_roll_window = function(new_roll_data)
     -- If we are not the master looter we need to extract the information into our local cache of the roll
 	-- Master looter has already done this when they generated the roll for the user
 	-- This also prevents someone from sending the ML a crafted addon message
-	if new_roll_data and not master_looter then
+	if new_roll_data and not MSGTOSRoll.master_looter then
 		-- split the new_roll_data on ' ' elements will be user, roll_type, roll
 		local roll_data = {}
 		for substring in new_roll_data:gmatch("%S+") do
@@ -344,11 +357,11 @@ end
 
 
 -- This ends a roll for an item, everyone needs to run this so their client knows if a roll ends
-local end_roll = function()
+MSGTOSRoll.end_roll = function()
 	MSGTOSRoll.client_roller:Hide()
 	if current_roll_tracker ~= nil then
 		table.insert(legacy_rolls, MSGTOSRoll.current_roll_text)
-		if master_looter then
+		if MSGTOSRoll.master_looter then
 			SendChatMessage("Roll for ".. current_roll_tracker['item_link'] .." has ended", "RAID")
 		end
 	end
@@ -362,8 +375,10 @@ end
 
 -- This openes up a roll for an item, everyone needs to run this so their client knows if a roll is opened
 local start_roll = function(item_link)
+	-- Try to pre load the item info. Hopefully this way, later on we can get the texture
+	_, _, _, _, _, _, _, _, _, itemTexture, _ = GetItemInfo(item_link)
 	if current_roll_tracker ~= nil then
-		end_roll()
+		MSGTOSRoll.end_roll()
 	end
 	current_roll_tracker = {
 		['item_link'] = item_link,
@@ -376,6 +391,10 @@ local start_roll = function(item_link)
 	-- Force the window to open for everyone
 	generate_roll_text()
 	update_roll_window()
+	_, _, _, _, _, _, _, _, _, itemTexture, _ = GetItemInfo(item_link)
+	MSGTOSRoll.client_roller.item_icon:SetTexture(itemTexture)
+	print(itemTexture)
+	MSGTOSRoll.client_roller:Show()
 end
 
 
@@ -395,7 +414,7 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 	end
 
 	-- Starting and ending raidrolls can only be done by ML
-	if not master_looter then
+	if not MSGTOSRoll.master_looter then
 		send_chat_message("You are not the master looter")
 		return
 	end
@@ -468,7 +487,7 @@ f:SetScript("OnEvent", function(self, event, ...)
 			if string.sub(addon_msg, 1, 6) == 'start ' then
 				start_roll(string.sub(addon_msg, 7))
 			elseif addon_msg == 'end' then
-				end_roll()
+				MSGTOSRoll.end_roll()
 			elseif string.sub(addon_msg, 1, 11) == 'rollupdate ' then
 				update_roll_window(string.sub(addon_msg, 12))
 			else
