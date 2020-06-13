@@ -23,14 +23,13 @@ local send_chat_message = function(text)
 end
 
 local check_if_i_am_master_looter = function()
-	print("Checking for master looter")
 	MSGTOSRoll.master_looter = false
         local user_raid_index = UnitInRaid("player")
         -- if not ina raid index will be nil
         if user_raid_index then
                 local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( user_raid_index )
-                if isML then
-						send_chat_message("Congratz, you are the ML")
+                if isML and not MSGTOSRoll.master_looter then
+			send_chat_message("Congratz, you are the ML")
                         MSGTOSRoll.master_looter = true
                 end
         end
@@ -237,6 +236,7 @@ MSGTOSRoll.loot_roll_frame:SetBackdropColor(0,0,0, 1)
 MSGTOSRoll.loot_roll_frame:SetMovable(true)
 MSGTOSRoll.loot_roll_frame:SetClampedToScreen(true)
 MSGTOSRoll.loot_roll_frame:SetToplevel(true)
+tinsert(UISpecialFrames, MSGTOSRoll.loot_roll_frame:GetName())
 
 MSGTOSRoll.dragger = CreateFrame("Button", nil, MSGTOSRoll.loot_roll_frame)
 MSGTOSRoll.dragger:SetPoint("TOPLEFT", MSGTOSRoll.loot_roll_frame, "TOPLEFT", 10,-5)
@@ -302,6 +302,7 @@ MSGTOSRoll.client_roller:SetBackdropColor(0,0,0, 1)
 MSGTOSRoll.client_roller:SetMovable(false)
 MSGTOSRoll.client_roller:SetClampedToScreen(true)
 MSGTOSRoll.client_roller:SetToplevel(true)
+MSGTOSRoll.client_roller:Hide()
 
 MSGTOSRoll.client_roller.text = MSGTOSRoll.client_roller:CreateFontString(nil,"ARTWORK") 
 MSGTOSRoll.client_roller.text:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
@@ -351,7 +352,7 @@ local update_roll_window = function(new_roll_data)
 	end
 	if current_roll_index == nil then
 		MSGTOSRoll.loot_info:SetText(MSGTOSRoll.current_roll_text)
-		MSGTOSRoll.loot_roll_frame:Show()
+		-- MSGTOSRoll.loot_roll_frame:Show()
 	end
 end
 
@@ -395,6 +396,7 @@ local start_roll = function(item_link)
 	MSGTOSRoll.client_roller.item_icon:SetTexture(itemTexture)
 	print(itemTexture)
 	MSGTOSRoll.client_roller:Show()
+	MSGTOSRoll.loot_roll_frame:Show()
 end
 
 
