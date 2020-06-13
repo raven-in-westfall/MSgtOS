@@ -73,6 +73,8 @@ local generate_roll_text = function()
 	new_text = new_text ..'|cffffff00Item: |r'.. current_roll_tracker['item_link'] .."\n\n"
 	local raid_classes = {}
 	local raid_colors = {}
+	local user_name
+	local user_class
 	for i = 1, MAX_RAID_MEMBERS do
 		user_name, _, _, _, user_class, _, _, _, _, _, _ = GetRaidRosterInfo(i);
 		if user_name ~= nil then
@@ -162,13 +164,13 @@ local process_incoming_roll_request = function(addon_msg)
 		return
 	end
 
-        local client_message = ''
+	local client_message = ''
 	if roll_type == 'msroll' then
 		roll_type = 'MS'
 	elseif roll_type == 'osroll' then
 		roll_type = 'OS'
 	elseif roll_type == 'passes' then
-		role_type = 'passes'
+		roll_type = 'passes'
 	else
 		send_chat_message("Invalid roll request: ".. addon_msg)
 	end
@@ -228,14 +230,14 @@ MSGTOSRoll.loot_roll_frame:SetBackdropColor(0,0,0, 1)
 MSGTOSRoll.loot_roll_frame:SetMovable(true)
 MSGTOSRoll.loot_roll_frame:SetClampedToScreen(true)
 MSGTOSRoll.loot_roll_frame:SetToplevel(true)
-MSGTOSRoll.loot_roll_frame:SetScript("OnMouseDown", function() MSGTOSRoll.loot_roll_frame:StartMoving() end)
-MSGTOSRoll.loot_roll_frame:SetScript("OnMouseUp", function() MSGTOSRoll.loot_roll_frame:StopMovingOrSizing() end)
 
--- local dragger = CreateFrame("Button", nil, MSGTOSRoll.loot_roll_frame)
--- dragger:SetPoint("TOPLEFT", MSGTOSRoll.loot_roll_frame, "TOPLEFT", 10,-5)
--- dragger:SetPoint("TOPRIGHT", MSGTOSRoll.loot_roll_frame, "TOPRIGHT", -10,-5)
--- dragger:SetHeight(8)
--- dragger:SetHighlightTexture("Interface\\FriendsFrame\\UI-FriendsFrame-HighlightBar")
+MSGTOSRoll.dragger = CreateFrame("Button", nil, MSGTOSRoll.loot_roll_frame)
+MSGTOSRoll.dragger:SetPoint("TOPLEFT", MSGTOSRoll.loot_roll_frame, "TOPLEFT", 10,-5)
+MSGTOSRoll.dragger:SetPoint("TOPRIGHT", MSGTOSRoll.loot_roll_frame, "TOPRIGHT", -10,-5)
+MSGTOSRoll.dragger:SetHeight(8)
+MSGTOSRoll.dragger:SetHighlightTexture("Interface\\FriendsFrame\\UI-FriendsFrame-HighlightBar")
+MSGTOSRoll.dragger:SetScript("OnMouseDown", function() MSGTOSRoll.loot_roll_frame:StartMoving() end)
+MSGTOSRoll.dragger:SetScript("OnMouseUp", function() MSGTOSRoll.loot_roll_frame:StopMovingOrSizing() end)
 
 MSGTOSRoll.close_button = CreateFrame("Button", "", MSGTOSRoll.loot_roll_frame, "OptionsButtonTemplate")
 MSGTOSRoll.close_button:SetText("Close")
@@ -273,8 +275,56 @@ MSGTOSRoll.loot_info:SetScript("OnEditFocusGained", function() MSGTOSRoll.loot_i
 MSGTOSRoll.scroll_frame:SetScrollChild(MSGTOSRoll.loot_info)
 
 
+
+
+
+
+
+MSGTOSRoll.client_roller = CreateFrame("Frame", "MSOSRollerFrame", UIParent)
+MSGTOSRoll.client_roller:SetPoint("CENTER", "UIParent", "CENTER")
+MSGTOSRoll.client_roller:SetFrameStrata("TOOLTIP")
+MSGTOSRoll.client_roller:SetHeight(180)
+MSGTOSRoll.client_roller:SetWidth(300)
+MSGTOSRoll.client_roller:SetBackdrop({
+	bgFile = "Interface/Tooltips/ChatBubble-Background",
+	edgeFile = "Interface/Tooltips/ChatBubble-BackDrop",
+	tile = true, tileSize = 32, edgeSize = 32,
+	insets = { left = 32, right = 32, top = 32, bottom = 32 }
+})
+MSGTOSRoll.client_roller:SetBackdropColor(0,0,0, 1)
+MSGTOSRoll.client_roller:SetMovable(false)
+MSGTOSRoll.client_roller:SetClampedToScreen(true)
+MSGTOSRoll.client_roller:SetToplevel(true)
+
+MSGTOSRoll.client_roller.text = MSGTOSRoll.client_roller:CreateFontString(nil,"ARTWORK") 
+MSGTOSRoll.client_roller.text:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
+MSGTOSRoll.client_roller.text:SetPoint("TOP",0,-20)
+MSGTOSRoll.client_roller.text:SetText("Loot Roll")
+
+MSGTOSRoll.client_roller.ms_button = CreateFrame("Button", "", MSGTOSRoll.client_roller, "OptionsButtonTemplate")
+MSGTOSRoll.client_roller.ms_button:SetText("Main Spec")
+MSGTOSRoll.client_roller.ms_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller, "TOPRIGHT", -20, -40)
+MSGTOSRoll.client_roller.ms_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('msroll') end)
+MSGTOSRoll.client_roller.ms_button:SetFrameLevel(5)
+
+MSGTOSRoll.client_roller.os_button = CreateFrame("Button", "", MSGTOSRoll.client_roller, "OptionsButtonTemplate")
+MSGTOSRoll.client_roller.os_button:SetText("Off Spec")
+MSGTOSRoll.client_roller.os_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller.ms_button, "BOTTOMRIGHT", 0, -20)
+MSGTOSRoll.client_roller.os_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('osroll') end)
+MSGTOSRoll.client_roller.os_button:SetFrameLevel(5)
+
+MSGTOSRoll.client_roller.pass_button = CreateFrame("Button", "", MSGTOSRoll.client_roller, "OptionsButtonTemplate")
+MSGTOSRoll.client_roller.pass_button:SetText("Pass")
+MSGTOSRoll.client_roller.pass_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller.os_button, "BOTTOMRIGHT", 0, -20)
+MSGTOSRoll.client_roller.pass_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('pass') end)
+MSGTOSRoll.client_roller.pass_button:SetFrameLevel(5)
+
+
+
+
+
 local update_roll_window = function(new_roll_data)
-        -- If we are not the master looter we need to extract the information into our local cache of the roll
+    -- If we are not the master looter we need to extract the information into our local cache of the roll
 	-- Master looter has already done this when they generated the roll for the user
 	-- This also prevents someone from sending the ML a crafted addon message
 	if new_roll_data and not master_looter then
@@ -295,6 +345,7 @@ end
 
 -- This ends a roll for an item, everyone needs to run this so their client knows if a roll ends
 local end_roll = function()
+	MSGTOSRoll.client_roller:Hide()
 	if current_roll_tracker ~= nil then
 		table.insert(legacy_rolls, MSGTOSRoll.current_roll_text)
 		if master_looter then
@@ -361,13 +412,13 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 			send_chat_message("You first need to end the existing roll for")
 			return
 		end
-		item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(msg)
+		local item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(msg)
 		if item_name == nil then
 			send_chat_message("Unable to lookup item ".. msg .." did you properly link the item?")
 			return
 		end
 
-		item_prio = 'None'
+		local item_prio = 'None'
 		if addon_variables['prio_list'][item_name] ~= nil then
 			item_prio = addon_variables['prio_list'][item_name]
 		end
@@ -377,9 +428,10 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 	end
 end
 
-local make_roll = function(roll_type)
+MSGTOSRoll.make_roll = function(roll_type)
+	MSGTOSRoll.client_roller:Hide()
 	if not roll_opened then
-		print_no_roll_message()
+		send_chat_message("There is not currently a roll opened")
 		return
 	end
 	if already_rolled then
@@ -392,21 +444,17 @@ end
 
 SLASH_MSGTOSOSROLL1 = '/osroll'
 SlashCmdList.MSGTOSOSROLL = function(msg, ...)
-	make_roll('osroll')
+	MSGTOSRoll.make_roll('osroll')
 end
 
 SLASH_MSGTOSMSROLL1 = '/msroll'
 SlashCmdList.MSGTOSMSROLL = function(msg, ...)
-	make_roll('msroll')
+	MSGTOSRoll.make_roll('msroll')
 end
 
 SLASH_MSGTOSPASSROLL1 = '/pass'
 SlashCmdList.MSGTOSPASSROLL = function(msg, ...)
-	make_roll('passes')
-end
-
-print_no_roll_message = function()
-	send_chat_message("There is not currently a roll opened")
+	MSGTOSRoll.make_roll('passes')
 end
 
 local f = CreateFrame("Frame")
@@ -415,7 +463,7 @@ f:RegisterEvent("GROUP_ROSTER_UPDATE")
 f:RegisterEvent("RAID_ROSTER_UPDATE")
 f:SetScript("OnEvent", function(self, event, ...)
 	if event == "CHAT_MSG_ADDON" then
-		message_type, addon_msg, level = ...
+		local message_type, addon_msg, level = ...
 		if message_type == 'MSgtOS_ROLL' then
 			if string.sub(addon_msg, 1, 6) == 'start ' then
 				start_roll(string.sub(addon_msg, 7))
