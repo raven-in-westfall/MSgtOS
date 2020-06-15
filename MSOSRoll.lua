@@ -16,6 +16,7 @@ local already_rolled = false
 local MSGTOSRoll = {
 	current_roll_text = nil,
 	master_looter = false,
+	tool_tip_link = nil,
 }
 
 local send_chat_message = function(text)
@@ -288,10 +289,10 @@ MSGTOSRoll.scroll_frame:SetScrollChild(MSGTOSRoll.loot_info)
 
 
 MSGTOSRoll.client_roller = CreateFrame("Frame", "MSOSRollerFrame", UIParent)
-MSGTOSRoll.client_roller:SetPoint("CENTER", "UIParent", "CENTER")
+MSGTOSRoll.client_roller:SetPoint("TOP", "UIParent", "TOP", 0, -225)
 MSGTOSRoll.client_roller:SetFrameStrata("TOOLTIP")
 MSGTOSRoll.client_roller:SetHeight(180)
-MSGTOSRoll.client_roller:SetWidth(300)
+MSGTOSRoll.client_roller:SetWidth(240)
 MSGTOSRoll.client_roller:SetBackdrop({
 	bgFile = "Interface/Tooltips/ChatBubble-Background",
 	edgeFile = "Interface/Tooltips/ChatBubble-BackDrop",
@@ -307,32 +308,50 @@ MSGTOSRoll.client_roller:Hide()
 MSGTOSRoll.client_roller.text = MSGTOSRoll.client_roller:CreateFontString(nil,"ARTWORK") 
 MSGTOSRoll.client_roller.text:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
 MSGTOSRoll.client_roller.text:SetPoint("TOP",0,-20)
-MSGTOSRoll.client_roller.text:SetText("Loot Roll")
+MSGTOSRoll.client_roller.text:SetText("MS OS Loot Roll")
+
+MSGTOSRoll.client_roller.item_text = MSGTOSRoll.client_roller:CreateFontString(nil,"ARTWORK") 
+MSGTOSRoll.client_roller.item_text:SetFont("Fonts\\ARIALN.ttf", 16, "OUTLINE")
+MSGTOSRoll.client_roller.item_text:SetPoint("TOP",0,-40)
+MSGTOSRoll.client_roller.item_text:SetText("[ITEM LINK HERE]")
 
 MSGTOSRoll.client_roller.ms_button = CreateFrame("Button", "", MSGTOSRoll.client_roller, "OptionsButtonTemplate")
 MSGTOSRoll.client_roller.ms_button:SetText("Main Spec")
-MSGTOSRoll.client_roller.ms_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller, "TOPRIGHT", -20, -40)
+MSGTOSRoll.client_roller.ms_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller, "TOPRIGHT", -20, -70)
 MSGTOSRoll.client_roller.ms_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('msroll') end)
 MSGTOSRoll.client_roller.ms_button:SetFrameLevel(5)
 
 MSGTOSRoll.client_roller.os_button = CreateFrame("Button", "", MSGTOSRoll.client_roller, "OptionsButtonTemplate")
 MSGTOSRoll.client_roller.os_button:SetText("Off Spec")
-MSGTOSRoll.client_roller.os_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller.ms_button, "BOTTOMRIGHT", 0, -20)
+MSGTOSRoll.client_roller.os_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller.ms_button, "BOTTOMRIGHT", 0, -15)
 MSGTOSRoll.client_roller.os_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('osroll') end)
 MSGTOSRoll.client_roller.os_button:SetFrameLevel(5)
 
 MSGTOSRoll.client_roller.pass_button = CreateFrame("Button", "", MSGTOSRoll.client_roller, "OptionsButtonTemplate")
 MSGTOSRoll.client_roller.pass_button:SetText("Pass")
-MSGTOSRoll.client_roller.pass_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller.os_button, "BOTTOMRIGHT", 0, -20)
+MSGTOSRoll.client_roller.pass_button:SetPoint("TOPRIGHT", MSGTOSRoll.client_roller.os_button, "BOTTOMRIGHT", 0, -15)
 MSGTOSRoll.client_roller.pass_button:SetScript("OnClick", function() MSGTOSRoll.make_roll('passes') end)
 MSGTOSRoll.client_roller.pass_button:SetFrameLevel(5)
 
-MSGTOSRoll.client_roller.item_icon = MSGTOSRoll.client_roller:CreateTexture(nil, "BACKGROUND")
+MSGTOSRoll.client_roller.item_icon_frame = CreateFrame("Frame", nil, MSGTOSRoll.client_roller)
+MSGTOSRoll.client_roller.item_icon_frame:SetWidth(60)
+MSGTOSRoll.client_roller.item_icon_frame:SetHeight(60)
+MSGTOSRoll.client_roller.item_icon_frame:SetPoint("TOPLEFT", 40, -70)
+MSGTOSRoll.client_roller.item_icon_frame:SetScript("OnEnter", function()
+	MSGTOSRoll.loot_tool_tip:SetOwner( MSGTOSRoll.client_roller.item_icon, "ANCHOR_NONE" );
+	MSGTOSRoll.loot_tool_tip:SetHyperlink(MSGTOSRoll.tool_tip_link)
+	MSGTOSRoll.loot_tool_tip:Show()
+	print(MSGTOSRoll.tool_tip_link)
+end)
+MSGTOSRoll.client_roller.item_icon_frame:SetScript("OnLeave", function() MSGTOSRoll.loot_tool_tip:Hide() end)
+
+MSGTOSRoll.client_roller.item_icon = MSGTOSRoll.client_roller.item_icon_frame:CreateTexture(nil, "BACKGROUND")
 MSGTOSRoll.client_roller.item_icon:SetWidth(60)
 MSGTOSRoll.client_roller.item_icon:SetHeight(60)
-MSGTOSRoll.client_roller.item_icon:SetPoint("TOPLEFT", 40, -40)
+MSGTOSRoll.client_roller.item_icon:SetPoint("TOPLEFT", 0, 0)
 MSGTOSRoll.client_roller.item_icon:SetTexture("Interface\\Icons\\INV_Misc_EngGizmos_17")
 
+MSGTOSRoll.loot_tool_tip = CreateFrame( "GameTooltip", "MSgtOSLootRoll", nil, "GameTooltipTemplate" );
 
 
 
@@ -393,8 +412,9 @@ local start_roll = function(item_link)
 	generate_roll_text()
 	update_roll_window()
 	_, _, _, _, _, _, _, _, _, itemTexture, _ = GetItemInfo(item_link)
+	MSGTOSRoll.client_roller.item_text:SetText(item_link)
 	MSGTOSRoll.client_roller.item_icon:SetTexture(itemTexture)
-	print(itemTexture)
+	MSGTOSRoll.tool_tip_link = item_link
 	MSGTOSRoll.client_roller:Show()
 	MSGTOSRoll.loot_roll_frame:Show()
 end
