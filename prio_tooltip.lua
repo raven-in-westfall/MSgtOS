@@ -1,6 +1,8 @@
+-- TODO:
+--   Make the /prio only work for ML
+
 local MSgtOS, addon_variables = ...
 
-addon_variables['prio_list']['Chunk of Boar Meat'] = 'The looser'
 GameTooltip:HookScript("OnTooltipSetItem", function(self, ...) 
 	GameTooltip:AddLine("Prio List:")
 	item_name, item_link = GameTooltip:GetItem()
@@ -11,6 +13,28 @@ GameTooltip:HookScript("OnTooltipSetItem", function(self, ...)
 	end
 end)
 
+SLASH_PRIO1 = '/prio'
+SlashCmdList.PRIO = function(msg, ...)
+	if msg == nil then
+		send_chat_message("Please pass an item")
+		return
+	end
+
+	local item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(msg)
+	if item_name == nil then
+		send_chat_message("Unable to lookup item ".. msg .." did you properly link the item?")
+		return
+	end
+
+	local item_prio = 'None'
+	if addon_variables['prio_list'][item_name] ~= nil then
+		item_prio = addon_variables['prio_list'][item_name]
+	end
+	SendChatMessage("Prio for ".. item_link ..": ".. item_prio, "RAID")
+end
+
 -- GameToolTip:SetScript("OnClick", function(self, button)
 -- 	print("Clicked")
 -- end)
+
+
