@@ -338,20 +338,17 @@ MSGTOSRoll.client_roller.item_icon_frame:SetWidth(60)
 MSGTOSRoll.client_roller.item_icon_frame:SetHeight(60)
 MSGTOSRoll.client_roller.item_icon_frame:SetPoint("TOPLEFT", 40, -70)
 MSGTOSRoll.client_roller.item_icon_frame:SetScript("OnEnter", function()
-	MSGTOSRoll.loot_tool_tip:SetOwner( MSGTOSRoll.client_roller.item_icon, "ANCHOR_NONE" );
-	MSGTOSRoll.loot_tool_tip:SetHyperlink(MSGTOSRoll.tool_tip_link)
-	MSGTOSRoll.loot_tool_tip:Show()
-	print(MSGTOSRoll.tool_tip_link)
+	GameTooltip:SetOwner(MSGTOSRoll.client_roller.item_icon_frame, "ANCHOR_TOP_RIGHT")
+	GameTooltip:SetHyperlink(MSGTOSRoll.tool_tip_link)
+	GameTooltip:Show()
 end)
-MSGTOSRoll.client_roller.item_icon_frame:SetScript("OnLeave", function() MSGTOSRoll.loot_tool_tip:Hide() end)
+MSGTOSRoll.client_roller.item_icon_frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
 MSGTOSRoll.client_roller.item_icon = MSGTOSRoll.client_roller.item_icon_frame:CreateTexture(nil, "BACKGROUND")
 MSGTOSRoll.client_roller.item_icon:SetWidth(60)
 MSGTOSRoll.client_roller.item_icon:SetHeight(60)
 MSGTOSRoll.client_roller.item_icon:SetPoint("TOPLEFT", 0, 0)
 MSGTOSRoll.client_roller.item_icon:SetTexture("Interface\\Icons\\INV_Misc_EngGizmos_17")
-
-MSGTOSRoll.loot_tool_tip = CreateFrame( "GameTooltip", "MSgtOSLootRoll", nil, "GameTooltipTemplate" );
 
 
 
