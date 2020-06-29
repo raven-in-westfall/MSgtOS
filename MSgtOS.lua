@@ -14,12 +14,11 @@ local ignore_items = {
 	['Elementium Ore'] = true,
 	["Chunk of Boar Meat"] = true,
 }
+addon_variables['send_chat_message'] = function(text)
+        DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] ".. text, 0.45, 0.0, 1.0)
+end
+
 local enable_logging = true
-local message_color = {
-	['r'] = 0.45,
-	['g'] = 0.0,
-	['b'] = 1.0,
-}
 local non_guild_pug_threashold_limit = 1
 local current_loot = {}
 local raid_group = nil
@@ -68,9 +67,9 @@ local process_raid_change = function()
 	if enable_logging ~= new_value then
 		enable_logging = new_value
 		if enable_logging then
-			DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] logging enabled for you as loot master", message_color['r'], message_color['g'], message_color['b'])
+			addon_variables['send_chat_message']('logging enabled for you as loot master')
 		else
-			DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] logging disabled", message_color["r"], message_color["g"], message_color["b"])
+			addon_variables['send_chat_message']('logging disabled')
 		end
 	end
 

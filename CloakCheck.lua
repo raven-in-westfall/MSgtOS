@@ -20,10 +20,6 @@ local cloak_name = 'Onyxia Scale Cloak'
 local old_cloak_name = ''
 local class_colors = {}
 
-local send_chat_message = function(text)
-	DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] ".. text, 0.45, 0.0, 1.0)
-end
-
 local check_if_i_have_cloak = function()
 	missing_cloak = true
 	cloak_equiped = false
@@ -51,7 +47,7 @@ local check_if_i_have_cloak = function()
 	end
 
 	if missing_cloak then
-		send_chat_message("YOU DON'T HAVE YOUR ONY CLOAK WITH YOU!")
+		addon_variables['send_chat_message']("YOU DON'T HAVE YOUR ONY CLOAK WITH YOU!")
 		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", player_name.." missing", "RAID")
 	elseif not cloak_equiped then
 		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", player_name.." needs_equip", "RAID")
@@ -191,7 +187,7 @@ SlashCmdList.CLOAKCHECK = function(msg, ...)
 	elseif msg == 'off' then
 		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "off", "RAID")
 	else
-		send_chat_message("Usage: /cloak [on|off|check]")
+		addon_variables['send_chat_message']("Usage: /cloak [on|off|check]")
 	end
 end
 
@@ -211,11 +207,11 @@ CloakCheck.top_level_frame:SetScript("OnEvent", function(self, event, ...)
 						cloak_equiped = true
 					end
 				end
-				send_chat_message("Raid master is putting your ".. cloak_name .." on")
+				addon_variables['send_chat_message']("Raid master is putting your ".. cloak_name .." on")
 				EquipItemByName(cloak_name)
 			elseif addon_msg == "off" then
 				if old_cloak_name ~= '' then
-					send_chat_message("Raid master is putting your reg cloak ".. old_cloak_name .." on")
+					addon_variables['send_chat_message']("Raid master is putting your reg cloak ".. old_cloak_name .." on")
 					EquipItemByName(old_cloak_name)
 				end
 			elseif running_check then

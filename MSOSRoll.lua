@@ -19,10 +19,6 @@ local MSGTOSRoll = {
 	tool_tip_link = nil,
 }
 
-local send_chat_message = function(text)
-	DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] ".. text, 0.45, 0.0, 1.0)
-end
-
 local check_if_i_am_master_looter = function()
 	MSGTOSRoll.master_looter = false
         local user_raid_index = UnitInRaid("player")
@@ -30,7 +26,7 @@ local check_if_i_am_master_looter = function()
         if user_raid_index then
                 local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( user_raid_index )
                 if isML and not MSGTOSRoll.master_looter then
-			send_chat_message("Congratz, you are the ML")
+			addon_variables['send_chat_message']("Congratz, you are the ML")
                         MSGTOSRoll.master_looter = true
                 end
         end
@@ -179,7 +175,7 @@ local process_incoming_roll_request = function(addon_msg)
 	elseif roll_type == 'passes' then
 		roll_type = 'passes'
 	else
-		send_chat_message("Invalid roll request: ".. addon_msg)
+		addon_variables['send_chat_message']("Invalid roll request: ".. addon_msg)
 	end
 
 	insert_into_current_tracker(roll_type, roll_user, roll_value)
@@ -420,7 +416,7 @@ end
 SLASH_MSGTOSSTARTROLL1 = '/raidroll'
 SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 	if msg == nil then
-		send_chat_message("Please pass an item, end or show")
+		addon_variables['send_chat_message']("Please pass an item, end or show")
 		return
 	end
 
@@ -434,25 +430,25 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 
 	-- Starting and ending raidrolls can only be done by ML
 	if not MSGTOSRoll.master_looter then
-		send_chat_message("You are not the master looter")
+		addon_variables['send_chat_message']("You are not the master looter")
 		return
 	end
 
 
 	if msg == 'end' then
 		if current_roll_tracker == nil then
-			send_chat_message("There is no roll currently opened")
+			addon_variables['send_chat_message']("There is no roll currently opened")
 			return
 		end
 		C_ChatInfo.SendAddonMessage("MSgtOS_ROLL", "end", "RAID")
 	else
 		if current__roll_tracker ~= nil then
-			send_chat_message("You first need to end the existing roll for")
+			addon_variables['send_chat_message']("You first need to end the existing roll for")
 			return
 		end
 		local item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(msg)
 		if item_name == nil then
-			send_chat_message("Unable to lookup item ".. msg .." did you properly link the item?")
+			addon_variables['send_chat_message']("Unable to lookup item ".. msg .." did you properly link the item?")
 			return
 		end
 
@@ -469,11 +465,11 @@ end
 MSGTOSRoll.make_roll = function(roll_type)
 	MSGTOSRoll.client_roller:Hide()
 	if not roll_opened then
-		send_chat_message("There is not currently a roll opened")
+		addon_variables['send_chat_message']("There is not currently a roll opened")
 		return
 	end
 	if already_rolled then
-		send_chat_message("You have already rolled on this item")
+		addon_variables['send_chat_message']("You have already rolled on this item")
 		return
 	end
 	already_rolled = true

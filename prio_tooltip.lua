@@ -16,13 +16,13 @@ end)
 SLASH_PRIO1 = '/prio'
 SlashCmdList.PRIO = function(msg, ...)
 	if msg == nil then
-		send_chat_message("Please pass an item")
+		addon_variables['send_chat_message']("Please pass an item")
 		return
 	end
 
 	local item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(msg)
 	if item_name == nil then
-		send_chat_message("Unable to lookup item ".. msg .." did you properly link the item?")
+		addon_variables['send_chat_message']("Unable to lookup item ".. msg .." did you properly link the item?")
 		return
 	end
 
