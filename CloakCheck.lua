@@ -17,6 +17,7 @@ local CloakCheck = {
 	},
 }
 local cloak_name = 'Onyxia Scale Cloak'
+local old_cloak_name = ''
 local class_colors = {}
 
 local send_chat_message = function(text)
@@ -34,8 +35,8 @@ local check_if_i_have_cloak = function()
 			if item_link ~= nil then
 				item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(item_link)
 				if item_name == cloak_name then
-                                    missing_cloak = false
-            			end
+				    missing_cloak = false
+	    			end
 			end
 		end
 	end
@@ -60,19 +61,19 @@ local check_if_i_have_cloak = function()
 end
 
 local process_cloak_response = function(message)
-        local raid_members = {}
-        local raid_colors = {}
-        for i = 1, MAX_RAID_MEMBERS do
-                user_name, _, _, _, user_class, _, _, _, _, _, _ = GetRaidRosterInfo(i);
-                if user_name ~= nil then
-                        if class_colors[user_class] == nil then
-                                r, g, b, hex = GetClassColor(string.upper(user_class))
-                                class_colors[user_class] = hex
-                        end
-                        raid_members[ user_name ] = true
-                        raid_colors[ user_name] = class_colors[user_class]
-                end
-        end
+	local raid_members = {}
+	local raid_colors = {}
+	for i = 1, MAX_RAID_MEMBERS do
+		user_name, _, _, _, user_class, _, _, _, _, _, _ = GetRaidRosterInfo(i);
+		if user_name ~= nil then
+			if class_colors[user_class] == nil then
+				r, g, b, hex = GetClassColor(string.upper(user_class))
+				class_colors[user_class] = hex
+			end
+			raid_members[ user_name ] = true
+			raid_colors[ user_name] = class_colors[user_class]
+		end
+	end
 
 	-- split the new_roll_data on ' ' elements will be user, roll_type, roll
 	local cloak_data = {}
@@ -94,7 +95,7 @@ local process_cloak_response = function(message)
 		new_text = new_text .." |c".. raid_colors[user] .. user .."|r\n"
 		raid_members[user] = nil
 	end
-        if print_none then new_text = new_text .."|cff666666None|r\n" end
+	if print_none then new_text = new_text .."|cff666666None|r\n" end
 
 	new_text = new_text ..'\n|cffffff00Unequiped|r\n'
 	print_none = true
@@ -103,7 +104,7 @@ local process_cloak_response = function(message)
 		new_text = new_text .." |c".. raid_colors[user] .. user .."|r\n"
 		raid_members[user] = nil
 	end
-        if print_none then new_text = new_text .."|cff666666None|r\n" end
+	if print_none then new_text = new_text .."|cff666666None|r\n" end
 	
 	new_text = new_text ..'\n|cffffff00Ready To Kill|r\n'
 	print_none = true
@@ -112,7 +113,7 @@ local process_cloak_response = function(message)
 		new_text = new_text .." |c".. raid_colors[user] .. user .."|r\n"
 		raid_members[user] = nil
 	end
-        if print_none then new_text = new_text .."|cff666666None|r\n" end
+	if print_none then new_text = new_text .."|cff666666None|r\n" end
 	
 	new_text = new_text ..'\n|cffffff00Not Reported|r\n'
 	print_none = true
@@ -122,7 +123,7 @@ local process_cloak_response = function(message)
 			new_text = new_text .."|cff666666".. key .."|r\n"
 		end
 	end
-        if print_none then new_text = new_text .."|cff666666None|r\n" end
+	if print_none then new_text = new_text .."|cff666666None|r\n" end
 
 	CloakCheck.cloak_info:SetText(new_text)
 	CloakCheck.top_level_frame:Show()
@@ -187,8 +188,10 @@ SlashCmdList.CLOAKCHECK = function(msg, ...)
 		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "check", "RAID")
 	elseif msg == 'on' then
 		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "on", "RAID")
+	elseif msg == 'off' then
+		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "off", "RAID")
 	else
-		send_chat_message("Usage: /cloak [on|check]")
+		send_chat_message("Usage: /cloak [on|off|check]")
 	end
 end
 
@@ -197,12 +200,24 @@ CloakCheck.top_level_frame:SetScript("OnEvent", function(self, event, ...)
 	if event == "CHAT_MSG_ADDON" then
 		message_type, addon_msg, level = ...
 		if message_type == 'MSgtOS_CLOAK' then
-                        if addon_msg == "check" then
+			if addon_msg == "check" then
 				check_if_i_have_cloak()
 			elseif addon_msg == "on" then
+				local item_link = GetInventoryItemLink("player", back_slot_id)
+				if item_link ~= nil then
+					item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(item_link)
+					if item_name ~= nil then
+						old_cloak_name = item_name
+						cloak_equiped = true
+					end
+				end
 				send_chat_message("Raid master is putting your ".. cloak_name .." on")
 				EquipItemByName(cloak_name)
-				C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "check", "RAID")
+			elseif addon_msg == "off" then
+				if old_cloak_name ~= '' then
+					send_chat_message("Raid master is putting your reg cloak ".. old_cloak_name .." on")
+					EquipItemByName(old_cloak_name)
+				end
 			elseif running_check then
 				process_cloak_response(addon_msg)
 			end
