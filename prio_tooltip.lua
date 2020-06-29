@@ -30,7 +30,11 @@ SlashCmdList.PRIO = function(msg, ...)
 	if addon_variables['prio_list'][item_name] ~= nil then
 		item_prio = addon_variables['prio_list'][item_name]
 	end
-	SendChatMessage("Prio for ".. msg ..": ".. item_prio, "RAID")
+	if addon_variables['is_master_looter'] then
+		SendChatMessage("Prio for ".. msg ..": ".. item_prio, "RAID")
+	else
+		addon_variables['send_chat_message']("Prio for ".. msg ..": ".. item_prio)
+	end
 end
 
 -- GameToolTip:SetScript("OnClick", function(self, button)
