@@ -286,7 +286,7 @@ MSGTOSRoll.scroll_frame:SetScrollChild(MSGTOSRoll.loot_info)
 
 MSGTOSRoll.client_roller = CreateFrame("Frame", "MSOSRollerFrame", UIParent)
 MSGTOSRoll.client_roller:SetPoint("TOP", "UIParent", "TOP", 0, -225)
-MSGTOSRoll.client_roller:SetFrameStrata("TOOLTIP")
+MSGTOSRoll.client_roller:SetFrameStrata("DIALOG")
 MSGTOSRoll.client_roller:SetHeight(180)
 MSGTOSRoll.client_roller:SetWidth(240)
 MSGTOSRoll.client_roller:SetBackdrop({
