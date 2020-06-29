@@ -18,7 +18,8 @@ addon_variables['send_chat_message'] = function(text)
         DEFAULT_CHAT_FRAME:AddMessage("[MS > OS] ".. text, 0.45, 0.0, 1.0)
 end
 
-local enable_logging = true
+addon_variables['is_master_looter'] = false
+
 local non_guild_pug_threashold_limit = 1
 local current_loot = {}
 local raid_group = nil
@@ -64,9 +65,9 @@ local process_raid_change = function()
 			new_value = true
 		end
 	end
-	if enable_logging ~= new_value then
-		enable_logging = new_value
-		if enable_logging then
+	if addon_variables['is_master_looter'] ~= new_value then
+		addon_variables['is_master_looter'] = new_value
+		if addon_variables['is_master_looter'] then
 			addon_variables['send_chat_message']('logging enabled for you as loot master')
 		else
 			addon_variables['send_chat_message']('logging disabled')
@@ -142,7 +143,7 @@ f:RegisterEvent("LOOT_OPENED")
 f:RegisterEvent("RAID_ROSTER_UPDATE")
 f:RegisterEvent("GROUP_ROSTER_UPDATE")
 f:SetScript("OnEvent", function(self, event, ...)
-	if event == "LOOT_OPENED" and enable_logging then process_loot()
+	if event == "LOOT_OPENED" and addon_variables['is_master_looter'] then process_loot()
 	elseif event == "GROUP_ROSTER_UPDATE" or event == "RAID_ROSTER_UPDATE" then process_raid_change()
 	end
 end)

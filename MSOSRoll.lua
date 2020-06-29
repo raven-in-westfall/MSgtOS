@@ -19,19 +19,6 @@ local MSGTOSRoll = {
 	tool_tip_link = nil,
 }
 
-local check_if_i_am_master_looter = function()
-	MSGTOSRoll.master_looter = false
-        local user_raid_index = UnitInRaid("player")
-        -- if not ina raid index will be nil
-        if user_raid_index then
-                local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo( user_raid_index )
-                if isML and not MSGTOSRoll.master_looter then
-			addon_variables['send_chat_message']("Congratz, you are the ML")
-                        MSGTOSRoll.master_looter = true
-                end
-        end
-end
-
 local insert_into_current_tracker = function(roll_type, roll_user, roll_score)
 	if roll_type == 'MS' or roll_type == 'OS' then
 		if current_roll_tracker[roll_type][roll_score] == nil then
@@ -138,7 +125,7 @@ local generate_roll_text = function()
 	if not has_roll then
 		new_text = new_text .."|cff666666None|r\n"
 		-- If we are the master looter and there are no rollers left we can end the roll
-		if MSGTOSRoll.master_looter then
+		if addon_variables['is_master_looter'] then
 			MSGTOSRoll.end_roll()
 		end
 	end
@@ -154,7 +141,7 @@ local process_incoming_roll_request = function(addon_msg)
 	end
 
 	-- only the master looters machine is alowed to generate a roll
-	if not MSGTOSRoll.master_looter then
+	if not addon_variables['is_master_looter'] then
 		return
 	end
 
@@ -353,7 +340,7 @@ local update_roll_window = function(new_roll_data)
     -- If we are not the master looter we need to extract the information into our local cache of the roll
 	-- Master looter has already done this when they generated the roll for the user
 	-- This also prevents someone from sending the ML a crafted addon message
-	if new_roll_data and not MSGTOSRoll.master_looter then
+	if new_roll_data and not addon_variables['is_master_looter'] then
 		-- split the new_roll_data on ' ' elements will be user, roll_type, roll
 		local roll_data = {}
 		for substring in new_roll_data:gmatch("%S+") do
@@ -374,7 +361,7 @@ MSGTOSRoll.end_roll = function()
 	MSGTOSRoll.client_roller:Hide()
 	if current_roll_tracker ~= nil then
 		table.insert(legacy_rolls, MSGTOSRoll.current_roll_text)
-		if MSGTOSRoll.master_looter then
+		if addon_variables['is_master_looter'] then
 			SendChatMessage("Roll for ".. current_roll_tracker['item_link'] .." has ended", "RAID")
 		end
 	end
@@ -429,7 +416,7 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 	end
 
 	-- Starting and ending raidrolls can only be done by ML
-	if not MSGTOSRoll.master_looter then
+	if not addon_variables['is_master_looter'] then
 		addon_variables['send_chat_message']("You are not the master looter")
 		return
 	end
@@ -493,8 +480,6 @@ end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("CHAT_MSG_ADDON")
-f:RegisterEvent("GROUP_ROSTER_UPDATE")
-f:RegisterEvent("RAID_ROSTER_UPDATE")
 f:SetScript("OnEvent", function(self, event, ...)
 	if event == "CHAT_MSG_ADDON" then
 		local message_type, addon_msg, level = ...
@@ -509,10 +494,8 @@ f:SetScript("OnEvent", function(self, event, ...)
 				process_incoming_roll_request(addon_msg)
 			end
 		end
-	elseif event == "GROUP_ROSTER_UPDATE" or event == "RAID_ROSTER_UPDATE" then check_if_i_am_master_looter()
 	end
 end)
 
 
 C_ChatInfo.RegisterAddonMessagePrefix("MSgtOS_ROLL")
-check_if_i_am_master_looter()
