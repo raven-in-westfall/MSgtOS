@@ -412,6 +412,7 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 			generate_roll_text()
 		end
 		update_roll_window()
+		MSGTOSRoll.loot_roll_frame:Show()
 		return
 	end
 
