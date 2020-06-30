@@ -183,9 +183,17 @@ SlashCmdList.CLOAKCHECK = function(msg, ...)
 		running_check = true
 		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "check", "RAID")
 	elseif msg == 'on' then
-		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "on", "RAID")
+		if addon_variables['is_master_looter'] then
+			C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "on", "RAID")
+		else
+			addon_variables['send_chat_message']('Only ML can use this function')
+		end
 	elseif msg == 'off' then
-		C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "off", "RAID")
+		if addon_variables['is_master_looter'] then
+			C_ChatInfo.SendAddonMessage("MSgtOS_CLOAK", "off", "RAID")
+		else
+			addon_variables['send_chat_message']('Only ML can use this function')
+		end
 	else
 		addon_variables['send_chat_message']("Usage: /cloak [on|off|check]")
 	end
