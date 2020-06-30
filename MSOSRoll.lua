@@ -434,7 +434,7 @@ SlashCmdList.MSGTOSSTARTROLL = function(msg, ...)
 			addon_variables['send_chat_message']("You first need to end the existing roll for")
 			return
 		end
-		local item_name, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(msg)
+		local item_name, item_link, _, _, _, _, _, _, _, _, _ = GetItemInfo(msg)
 		if item_name == nil then
 			addon_variables['send_chat_message']("Unable to lookup item ".. msg .." did you properly link the item?")
 			return
