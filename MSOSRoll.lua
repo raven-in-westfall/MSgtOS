@@ -210,6 +210,7 @@ MSGTOSRoll.loot_roll_frame:SetPoint("CENTER", "UIParent", "CENTER")
 MSGTOSRoll.loot_roll_frame:SetFrameStrata("TOOLTIP")
 MSGTOSRoll.loot_roll_frame:SetHeight(580)
 MSGTOSRoll.loot_roll_frame:SetWidth(300)
+MSGTOSRoll.loot_roll_frame:SetUserPlaced()
 MSGTOSRoll.loot_roll_frame:SetBackdrop({
 	bgFile = "Interface/Tooltips/ChatBubble-Background",
 	edgeFile = "Interface/Tooltips/ChatBubble-BackDrop",

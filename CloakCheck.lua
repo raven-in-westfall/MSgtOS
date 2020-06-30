@@ -131,6 +131,7 @@ CloakCheck.top_level_frame:SetPoint("CENTER", "UIParent", "CENTER")
 CloakCheck.top_level_frame:SetFrameStrata("TOOLTIP")
 CloakCheck.top_level_frame:SetHeight(580)
 CloakCheck.top_level_frame:SetWidth(300)
+CloakCheck.loot_roll_frame:SetUserPlaced()
 CloakCheck.top_level_frame:SetBackdrop({
 	bgFile = "Interface/Tooltips/ChatBubble-Background",
 	edgeFile = "Interface/Tooltips/ChatBubble-BackDrop",
