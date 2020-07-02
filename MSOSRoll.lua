@@ -5,7 +5,6 @@
 local MSgtOS, addon_variables = ...
 
 local rarity_names = { 'Poor', 'Common', 'Uncommon', 'Rare', 'Epic', 'Legendary' }
-local Dialog = LibStub("LibDialog-1.0")
 local player_name = GetUnitName('player')
 local current_roll_tracker = nil
 local current_roll_index = nil
