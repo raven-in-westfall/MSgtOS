@@ -344,7 +344,7 @@ addon_variables['prio_list'] = {
     ["Imperial Qiraji Regalia"] = "Druid (Feral) > Warlock > SPriest > Priest = Druid (Resto) > MS>OS",
     ["Neretzek, the Blood Drinker"] = "MS>OS",
     ["Ritssyn's Ring of Chaos"] = "Mage > MS>OS",
-    ["Shard of the Fallen Star  MS>OS",
+    ["Shard of the Fallen Star"] = "MS>OS",
     -- The Prophet Skeram
     ["Amulet of Foul Warding"] = "MS>OS",
     ["Barrage Shoulders"] = "MS>OS",
